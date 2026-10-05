@@ -1,0 +1,428 @@
+{
+  "datasets": [
+    {
+      "name": "e70dd53e",
+      "displayName": "Championship Standings Table",
+      "queryLines": [
+        "SELECT\r\n",
+        "    championship_position AS `Championship Position`,\r\n",
+        "    driver_name AS `Driver`,\r\n",
+        "    team_name AS `Team`,\r\n",
+        "    total_points AS `Points`,\r\n",
+        "    (MAX(total_points) OVER () - total_points) AS `Gap to Leader`,\r\n",
+        "    wins AS `Wins`,\r\n",
+        "    podiums AS `Podiums`,\r\n",
+        "    dnfs AS `DNFs`,\r\n",
+        "    avg_points_per_race AS `Avg Pts/Race`,\r\n",
+        "    reliability_score AS `Reliability %`\r\n",
+        "FROM f1_data.gold.driver_season_stats\r\n",
+        "WHERE year = 2024\r\n",
+        "ORDER BY championship_position;"
+      ]
+    },
+    {
+      "name": "3e47c2b7",
+      "displayName": "Points Progression",
+      "queryLines": [
+        "-- ============ WIDGET 2: Points Progression (line chart) ============\r\n",
+        "-- Use this in a line chart: x=session_date, y=cumulative_points, color=driver_name\r\n",
+        "SELECT\r\n",
+        "    driver_name,\r\n",
+        "    last_race_date AS session_date,\r\n",
+        "    total_points AS cumulative_points,\r\n",
+        "    championship_position AS championship_position_after_race\r\n",
+        "FROM f1_data.gold.driver_standings\r\n",
+        "ORDER BY driver_name, session_date;"
+      ],
+      "catalog": "f1_data",
+      "schema": "gold"
+    },
+    {
+      "name": "933531c6",
+      "displayName": "Constructor Standings",
+      "queryLines": [
+        "SELECT\r\n",
+        "    constructor_position AS `#`,\r\n",
+        "    team_name AS `Team`,\r\n",
+        "    total_points AS `Points`,\r\n",
+        "    points_behind_leader AS `Gap`,\r\n",
+        "    total_wins AS `Wins`,\r\n",
+        "    total_podiums AS `Podiums`,\r\n",
+        "    avg_points_per_race AS `Avg Pts/Race`,\r\n",
+        "    dnf_rate * 100 AS `DNF Rate %`\r\n",
+        "FROM f1_data.gold.team_standings\r\n",
+        "WHERE year = 2024\r\n",
+        "ORDER BY constructor_position;"
+      ]
+    },
+    {
+      "name": "ac014de4",
+      "displayName": "Win Distribution",
+      "queryLines": [
+        "-- ============ WIDGET 4: Win Distribution (bar chart) ============\r\n",
+        "SELECT\r\n",
+        "    driver_name,\r\n",
+        "    team_name,\r\n",
+        "    wins,\r\n",
+        "    podiums,\r\n",
+        "    total_points\r\n",
+        "FROM f1_data.gold.driver_season_stats\r\n",
+        "WHERE year = 2024 AND wins > 0\r\n",
+        "ORDER BY wins DESC;"
+      ]
+    },
+    {
+      "name": "d5aa0113",
+      "displayName": "Performance Category",
+      "queryLines": [
+        "-- ============ WIDGET 5: Performance Category Breakdown (pie/donut) ============\r\n",
+        "SELECT\r\n",
+        "    performance_category,\r\n",
+        "    COUNT(*) AS occurrences,\r\n",
+        "    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER (), 2) AS percentage\r\n",
+        "FROM f1_data.gold.race_performance\r\n",
+        "WHERE year = 2024 AND session_type = 'Race'\r\n",
+        "GROUP BY performance_category\r\n",
+        "ORDER BY occurrences DESC;"
+      ]
+    },
+    {
+      "name": "e0e37aca",
+      "displayName": "Circuit Strengths",
+      "queryLines": [
+        "-- ============ WIDGET 6: Circuit Strengths by Team (heatmap) ============\r\n",
+        "SELECT\r\n",
+        "    team_name,\r\n",
+        "    circuit_type,\r\n",
+        "    avg_position,\r\n",
+        "    circuit_type_strength,\r\n",
+        "    races_on_circuit_type\r\n",
+        "FROM f1_data.gold.team_circuit_strengths\r\n",
+        "WHERE year = 2024\r\n",
+        "ORDER BY team_name, circuit_type;"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "dc75a3cf",
+      "displayName": "Untitled page",
+      "layout": [
+        {
+          "widget": {
+            "name": "ed91a6fd",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e70dd53e",
+                  "fields": [
+                    {
+                      "name": "sum(Wins)",
+                      "expression": "SUM(`Wins`)"
+                    },
+                    {
+                      "name": "Driver",
+                      "expression": "`Driver`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "sum(Wins)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "Driver",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 8,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "672e51c3",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "3e47c2b7",
+                  "fields": [
+                    {
+                      "name": "sum(cumulative_points)",
+                      "expression": "SUM(`cumulative_points`)"
+                    },
+                    {
+                      "name": "driver_name",
+                      "expression": "`driver_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(cumulative_points)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "driver_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "ab0e95fe",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "933531c6",
+                  "fields": [
+                    {
+                      "name": "sum(Wins)",
+                      "expression": "SUM(`Wins`)"
+                    },
+                    {
+                      "name": "Team",
+                      "expression": "`Team`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "sum(Wins)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "Team",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 4,
+            "width": 8,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "3860ed86",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ac014de4",
+                  "fields": [
+                    {
+                      "name": "sum(wins)",
+                      "expression": "SUM(`wins`)"
+                    },
+                    {
+                      "name": "driver_name",
+                      "expression": "`driver_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "sum(wins)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "driver_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "2b79b267",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "d5aa0113",
+                  "fields": [
+                    {
+                      "name": "countdistinct(performance_category)",
+                      "expression": "COUNT(DISTINCT `performance_category`)"
+                    },
+                    {
+                      "name": "percentage",
+                      "expression": "`percentage`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "countdistinct(performance_category)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "color": {
+                  "fieldName": "percentage",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "b671825f",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "e0e37aca",
+                  "fields": [
+                    {
+                      "name": "team_name",
+                      "expression": "`team_name`"
+                    },
+                    {
+                      "name": "circuit_type_strength",
+                      "expression": "`circuit_type_strength`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "heatmap",
+              "encodings": {
+                "x": {
+                  "fieldName": "team_name",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "circuit_type_strength",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 8,
+            "width": 6,
+            "height": 6
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
